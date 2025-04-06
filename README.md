@@ -1,36 +1,133 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Resume Reviewer
 
-## Getting Started
+A web application for uploading resumes and getting feedback through annotations and comments.
 
-First, run the development server:
+## Features
+
+- Upload PDF resumes
+- Generate unique, shareable links
+- In-browser PDF rendering
+- Annotation mode for highlighting and commenting on specific parts of the resume
+- Comment sidebar for viewing all feedback
+- No authentication required
+
+## Tech Stack
+
+- **Frontend**: React.js, Next.js, Tailwind CSS
+- **Backend**: Next.js API Routes
+- **PDF Rendering**: PDF.js, react-pdf
+- **Database**: Supabase (PostgreSQL)
+- **Storage**: Supabase Storage
+- **Deployment**: Vercel (frontend), Supabase (backend)
+
+## Prerequisites
+
+- Node.js 18+ and npm
+- Supabase account (free tier works fine)
+
+## Setup
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/yourusername/resume_reviewer.git
+cd resume_reviewer
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Create a Supabase project:
+   - Go to [supabase.com](https://supabase.com/) and create a new project
+   - Create the following tables in Supabase:
+
+**resumes table:**
+```sql
+create table resumes (
+  id uuid primary key,
+  file_name text not null,
+  file_url text not null,
+  uploaded_at timestamp with time zone default now()
+);
+```
+
+**comments table:**
+```sql
+create table comments (
+  id uuid primary key,
+  resume_id uuid references resumes(id) on delete cascade not null,
+  content text not null,
+  position jsonb not null,
+  author text,
+  created_at timestamp with time zone default now()
+);
+```
+
+4. Set up Supabase Storage:
+   - Create a bucket named `resumes` with public access
+
+5. Configure environment variables:
+   - Rename `.env.local.example` to `.env.local`
+   - Fill in your Supabase URL and anon key:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
+6. Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+7. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deployment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Deploying to Vercel
 
-## Learn More
+1. Push your code to a GitHub repository
+2. Connect your repository to Vercel
+3. Add the environment variables from `.env.local` to your Vercel project
+4. Deploy
 
-To learn more about Next.js, take a look at the following resources:
+## License
+MIT
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+// ... existing code ...
 
-## Deploy on Vercel
+## Troubleshooting
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### "new row violates row-level security policy" Error
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+If you get errors related to row-level security when uploading files or creating records:
+
+1. Make sure you've run the SQL commands to enable public access to your tables
+2. Supabase enables Row Level Security (RLS) by default, which blocks all operations until you define policies
+3. You can run these SQL commands in the Supabase SQL Editor (Dashboard > SQL Editor)
+
+### "Supabase credentials are not set" Error
+
+If you see this error:
+
+1. Create a proper `.env.local` file with your Supabase credentials
+2. Make sure the file is in the project root directory
+3. Ensure there are no typos in your environment variable names
+4. Restart the application after adding the credentials
+
+### Supabase Storage Issues
+
+If files aren't uploading properly:
+
+1. Check that you've created a storage bucket named "resumes"
+2. Ensure the bucket has appropriate public access
+3. Run the SQL commands provided to set up storage permissions
+
+## Security Considerations
+
+**Note**: The current implementation allows anonymous access to all resources for simplicity. In a production environment, you should implement proper authentication and more restrictive RLS policies.
