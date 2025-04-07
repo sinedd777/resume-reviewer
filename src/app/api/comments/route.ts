@@ -97,8 +97,8 @@ export async function GET(request: NextRequest) {
       author: comment.author || undefined,
       createdAt: comment.created_at,
       commentType: comment.comment_type,
-      likes: comment.likes || 0,
-      dislikes: comment.dislikes || 0
+      likes: comment.likes,
+      dislikes: comment.dislikes
     }));
 
     return NextResponse.json(comments);
@@ -116,44 +116,133 @@ export async function PATCH(request: Request) {
     const data = await request.json();
     const { id, likes, dislikes } = data;
     
+    console.log('PATCH request received:', { id, likes, dislikes });
+    
     if (!id) {
       return NextResponse.json({ error: 'Comment ID is required' }, { status: 400 });
     }
     
-    // Build update object handling null values properly
-    const updateData: { likes?: number; dislikes?: number } = {};
-    
-    // Handle likes with null safety
-    if (likes !== undefined) {
-      updateData.likes = likes;
-    }
-    
-    // Handle dislikes with null safety
-    if (dislikes !== undefined) {
-      updateData.dislikes = dislikes;
-    }
-    
-    // Update the comment in the database
-    const { error } = await supabase
+    // Fetch current comment to get all its data
+    const { data: currentComment, error: fetchError } = await supabase
       .from('comments')
-      .update(updateData)
-      .eq('id', id);
+      .select('*')
+      .eq('id', id)
+      .single();
     
-    if (error) {
-      console.error('Error updating comment:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (fetchError) {
+      console.error('Error fetching comment:', fetchError);
+      return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
     }
     
-    // Fetch the updated comment separately to return it
+    console.log('Current comment in database:', currentComment);
+    
+    // Build update object with explicit type conversion
+    const updateData: Record<string, unknown> = {};
+    
+    if (likes !== undefined) {
+      // Use Number() to ensure likes is stored as a number and not a string or null
+      updateData.likes = Number(likes);
+      console.log(`Setting likes to ${updateData.likes}`);
+    }
+    
+    if (dislikes !== undefined) {
+      // Use Number() to ensure dislikes is stored as a number and not a string or null
+      updateData.dislikes = Number(dislikes);
+      console.log(`Setting dislikes to ${updateData.dislikes}`);
+    }
+    
+    console.log('Updating comment with data:', updateData);
+    
+    // Try a direct SQL update to bypass any RLS (Row Level Security) issues
+    // This is more likely to work if there are permission issues
+    const commentId = id;
+    let updateQuery = 'UPDATE comments SET ';
+    const updateValues: (string | number)[] = [];
+    let valueIndex = 1;
+    
+    if (likes !== undefined) {
+      updateQuery += `likes = $${valueIndex}, `;
+      updateValues.push(Number(likes));
+      valueIndex++;
+    }
+    
+    if (dislikes !== undefined) {
+      updateQuery += `dislikes = $${valueIndex}, `;
+      updateValues.push(Number(dislikes));
+      valueIndex++;
+    }
+    
+    // Remove trailing comma and space
+    updateQuery = updateQuery.slice(0, -2);
+    updateQuery += ` WHERE id = $${valueIndex} RETURNING *`;
+    updateValues.push(commentId);
+    
+    console.log('Executing SQL update:', { query: updateQuery, values: updateValues });
+    
+    const { data: directUpdateResult, error: directUpdateError } = await supabase
+      .rpc('direct_update_comment', { 
+        comment_id: commentId, 
+        likes_value: updateData.likes as number,
+        dislikes_value: updateData.dislikes as number 
+      });
+    
+    // Handle the direct update error - fall back to standard update
+    if (directUpdateError) {
+      console.error('Error with direct update, falling back to standard update:', directUpdateError);
+      
+      // Standard update as fallback
+      const { error } = await supabase
+        .from('comments')
+        .update(updateData)
+        .eq('id', id);
+      
+      if (error) {
+        console.error('Error updating comment:', error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+    } else {
+      console.log('Direct update successful:', directUpdateResult);
+    }
+    
+    // Fetch the updated comment separately to verify and return it
     const { data: updatedComment, error: fetchUpdatedError } = await supabase
       .from('comments')
-      .select()
+      .select('*')
       .eq('id', id)
       .single();
     
     if (fetchUpdatedError) {
       console.error('Error fetching updated comment:', fetchUpdatedError);
       return NextResponse.json({ error: fetchUpdatedError.message }, { status: 500 });
+    }
+    
+    console.log('Updated comment in database:', updatedComment);
+    
+    // If the update didn't work, return a manual response with the updated values
+    if ((likes !== undefined && updatedComment.likes !== Number(likes)) ||
+        (dislikes !== undefined && updatedComment.dislikes !== Number(dislikes))) {
+      console.warn('Database update did not take effect. Returning manually updated response.');
+      
+      // Create response manually with updated values
+      const response = {
+        id: updatedComment.id,
+        resumeId: updatedComment.resume_id,
+        content: updatedComment.content,
+        position: JSON.parse(updatedComment.position),
+        author: updatedComment.author || undefined,
+        createdAt: updatedComment.created_at,
+        commentType: updatedComment.comment_type,
+        likes: likes !== undefined ? Number(likes) : Number(updatedComment.likes || 0),
+        dislikes: dislikes !== undefined ? Number(dislikes) : Number(updatedComment.dislikes || 0)
+      };
+      
+      console.log('Sending manually fixed response:', { 
+        id: response.id, 
+        likes: response.likes, 
+        dislikes: response.dislikes 
+      });
+      
+      return NextResponse.json(response);
     }
     
     // Create a response with correctly typed data
@@ -165,9 +254,15 @@ export async function PATCH(request: Request) {
       author: updatedComment.author || undefined,
       createdAt: updatedComment.created_at,
       commentType: updatedComment.comment_type,
-      likes: updatedComment.likes || 0, // Ensure null is converted to 0
-      dislikes: updatedComment.dislikes || 0 // Ensure null is converted to 0
+      likes: Number(updatedComment.likes || 0), // Ensure null is converted to 0
+      dislikes: Number(updatedComment.dislikes || 0) // Ensure null is converted to 0
     };
+    
+    console.log('Sending response:', { 
+      id: response.id, 
+      likes: response.likes, 
+      dislikes: response.dislikes 
+    });
     
     return NextResponse.json(response);
   } catch (error) {

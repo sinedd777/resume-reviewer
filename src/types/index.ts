@@ -26,4 +26,6 @@ export interface CommentPosition {
   width?: number;
   height?: number;
   selectedText?: string;
+  originalX?: number;
+  originalY?: number;
 } 

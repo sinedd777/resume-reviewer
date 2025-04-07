@@ -349,7 +349,7 @@ export default function ReviewPage() {
                 type="text"
                 readOnly
                 value={sharingLink}
-                className="w-48 md:w-64 text-sm border border-gray-300 rounded-l-md py-1 px-2"
+                className="w-48 md:w-64 text-sm border border-gray-300 rounded-l-md py-1 px-2 text-gray-600"
                 onClick={(e) => e.currentTarget.select()}
               />
               <button
