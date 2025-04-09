@@ -98,36 +98,4 @@ npm run dev
 ## License
 MIT
 
-
-// ... existing code ...
-
-## Troubleshooting
-
-### "new row violates row-level security policy" Error
-
-If you get errors related to row-level security when uploading files or creating records:
-
-1. Make sure you've run the SQL commands to enable public access to your tables
-2. Supabase enables Row Level Security (RLS) by default, which blocks all operations until you define policies
-3. You can run these SQL commands in the Supabase SQL Editor (Dashboard > SQL Editor)
-
-### "Supabase credentials are not set" Error
-
-If you see this error:
-
-1. Create a proper `.env.local` file with your Supabase credentials
-2. Make sure the file is in the project root directory
-3. Ensure there are no typos in your environment variable names
-4. Restart the application after adding the credentials
-
-### Supabase Storage Issues
-
-If files aren't uploading properly:
-
-1. Check that you've created a storage bucket named "resumes"
-2. Ensure the bucket has appropriate public access
-3. Run the SQL commands provided to set up storage permissions
-
-## Security Considerations
-
 **Note**: The current implementation allows anonymous access to all resources for simplicity. In a production environment, you should implement proper authentication and more restrictive RLS policies.
