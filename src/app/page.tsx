@@ -49,26 +49,6 @@ export default function Home() {
             Upload your resume and get feedback from others through a shareable link.
           </p>
         </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6 md:p-8">
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">
-              Upload Your Resume
-            </h2>
-            <p className="text-gray-500 text-sm">
-              Upload your resume as a PDF file to get started.
-            </p>
-          </div>
-          
-          <FileUpload onUpload={handleUpload} isUploading={isUploading} />
-          
-          {error && (
-            <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">
-              {error}
-            </div>
-          )}
-        </div>
-
         <div className="mt-8 bg-white rounded-lg shadow-md p-6 md:p-8">
           <h2 className="text-xl font-semibold text-gray-700 mb-4">
             How It Works
@@ -111,6 +91,24 @@ export default function Home() {
               </div>
             </div>
           </div>
+        </div>
+        <div className="bg-white rounded-lg shadow-md p-6 md:p-8">
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-gray-700 mb-2">
+              Upload Your Resume
+            </h2>
+            <p className="text-gray-500 text-sm">
+              Upload your resume as a PDF file to get started.
+            </p>
+          </div>
+          
+          <FileUpload onUpload={handleUpload} isUploading={isUploading} />
+          
+          {error && (
+            <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">
+              {error}
+            </div>
+          )}
         </div>
       </div>
     </div>
